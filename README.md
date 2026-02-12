@@ -2,13 +2,13 @@
 
 **Tool retrieval and ranking algorithms for LLM agents**
 
-[![PyPI version](https://badge.fury.io/py/isage-tooluse.svg)](https://badge.fury.io/py/isage-tooluse)
+[![PyPI version](https://badge.fury.io/py/isage-agentic-tooluse.svg)](https://badge.fury.io/py/isage-agentic-tooluse)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 🎯 Overview
 
-`sage-tooluse` provides a comprehensive suite of tool selection and ranking algorithms for LLM agents:
+`sage-agentic-tooluse` provides a comprehensive suite of tool selection and ranking algorithms for LLM agents:
 
 - **Keyword Selector**: Fast matching based on keyword overlap
 - **Embedding Selector**: Semantic similarity using embeddings
@@ -20,13 +20,13 @@
 
 ```bash
 # Basic installation
-pip install isage-tooluse
+pip install isage-agentic-tooluse
 
 # With embedding support
-pip install isage-tooluse[embedding]
+pip install isage-agentic-tooluse[embedding]
 
 # Development installation
-pip install isage-tooluse[dev]
+pip install isage-agentic-tooluse[dev]
 ```
 
 ## 🚀 Quick Start
@@ -34,7 +34,7 @@ pip install isage-tooluse[dev]
 ### Keyword-based Tool Selection
 
 ```python
-from sage_libs.sage_tooluse import KeywordToolSelector
+from sage_libs.sage_agentic_tooluse import KeywordToolSelector
 
 # Create selector
 selector = KeywordToolSelector(tools=available_tools)
@@ -52,7 +52,7 @@ for tool in selected:
 ### Embedding-based Tool Selection
 
 ```python
-from sage_libs.sage_tooluse import EmbeddingToolSelector
+from sage_libs.sage_agentic_tooluse import EmbeddingToolSelector
 
 # Create selector with embedding model
 selector = EmbeddingToolSelector(
@@ -70,7 +70,7 @@ selected = selector.select(
 ### Hybrid Tool Selection
 
 ```python
-from sage_libs.sage_tooluse import HybridToolSelector
+from sage_libs.sage_agentic_tooluse import HybridToolSelector
 
 # Combine keyword and embedding approaches
 selector = HybridToolSelector(
@@ -106,7 +106,7 @@ selected = selector.select(query="...", top_k=5)
 ## 🏗️ Architecture
 
 ```
-sage_libs.sage_tooluse/
+sage_libs.sage_agentic_tooluse/
 ├── __init__.py              # Public API exports
 ├── base.py                  # Base selector interface
 ├── keyword_selector.py      # Keyword-based selection
@@ -133,7 +133,7 @@ This package is part of the SAGE ecosystem and can be used with SAGE agents:
 
 ```python
 # Standalone usage
-from sage_libs.sage_tooluse import HybridToolSelector
+from sage_libs.sage_agentic_tooluse import HybridToolSelector
 
 # With SAGE (when available, through interface layer)
 from sage.libs.tooluse import create_selector
@@ -143,9 +143,9 @@ selector = create_selector("hybrid", tools=available_tools)
 
 ## 📖 Documentation
 
-- **Repository**: https://github.com/intellistream/sage-tooluse
+- **Repository**: https://github.com/intellistream/sage-agentic-tooluse
 - **SAGE Documentation**: https://intellistream.github.io/SAGE-Pub/
-- **Issues**: https://github.com/intellistream/sage-tooluse/issues
+- **Issues**: https://github.com/intellistream/sage-agentic-tooluse/issues
 
 ## 🤝 Contributing
 
