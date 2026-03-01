@@ -14,16 +14,13 @@
 - **Embedding Selector**: Semantic similarity using embeddings
 - **Hybrid Selector**: Combines keyword and embedding approaches
 - **DFS-DT Selector**: Decision tree-based tool selection
-- **Gorilla Adapter**: Gorilla-style tool retrieval
+- **Gorilla Selector**: Gorilla-style tool retrieval
 
 ## 📦 Installation
 
 ```bash
 # Basic installation
 pip install isage-agentic-tooluse
-
-# With embedding support
-pip install isage-agentic-tooluse[embedding]
 
 # Development installation
 pip install isage-agentic-tooluse[dev]
@@ -34,35 +31,40 @@ pip install isage-agentic-tooluse[dev]
 ### Keyword-based Tool Selection
 
 ```python
-from sage_libs.sage_agentic_tooluse import KeywordToolSelector
+from sage_libs.sage_agentic_tooluse import KeywordSelector, ToolSelectionQuery
 
 # Create selector
-selector = KeywordToolSelector(tools=available_tools)
+selector = KeywordSelector.from_config(config=keyword_config, resources=resources)
 
 # Select tools for a query
 selected = selector.select(
-    query="Get current weather in New York",
+    query=ToolSelectionQuery(
+        sample_id="q1",
+        instruction="Get current weather in New York",
+        candidate_tools=["weather_api", "search_api"],
+    ),
     top_k=5
 )
 
 for tool in selected:
-    print(f"Tool: {tool.name}, Score: {tool.score}")
+    print(f"Tool: {tool.tool_id}, Score: {tool.score}")
 ```
 
 ### Embedding-based Tool Selection
 
 ```python
-from sage_libs.sage_agentic_tooluse import EmbeddingToolSelector
+from sage_libs.sage_agentic_tooluse import EmbeddingSelector, ToolSelectionQuery
 
 # Create selector with embedding model
-selector = EmbeddingToolSelector(
-    tools=available_tools,
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
+selector = EmbeddingSelector.from_config(config=embedding_config, resources=resources)
 
 # Select tools based on semantic similarity
 selected = selector.select(
-    query="What's the weather like?",
+    query=ToolSelectionQuery(
+        sample_id="q2",
+        instruction="What's the weather like?",
+        candidate_tools=["weather_api", "search_api"],
+    ),
     top_k=5
 )
 ```
@@ -70,38 +72,41 @@ selected = selector.select(
 ### Hybrid Tool Selection
 
 ```python
-from sage_libs.sage_agentic_tooluse import HybridToolSelector
+from sage_libs.sage_agentic_tooluse import HybridSelector, ToolSelectionQuery
 
 # Combine keyword and embedding approaches
-selector = HybridToolSelector(
-    tools=available_tools,
-    keyword_weight=0.3,
-    embedding_weight=0.7
-)
+selector = HybridSelector.from_config(config=hybrid_config, resources=resources)
 
-selected = selector.select(query="...", top_k=5)
+selected = selector.select(
+    query=ToolSelectionQuery(
+        sample_id="q3",
+        instruction="Find tools for weather updates",
+        candidate_tools=["weather_api", "search_api", "calendar_api"],
+    ),
+    top_k=5,
+)
 ```
 
 ## 📚 Key Components
 
 ### Selectors
 
-- **KeywordToolSelector**: Fast keyword-based matching
-- **EmbeddingToolSelector**: Semantic similarity using embeddings
-- **HybridToolSelector**: Weighted combination of multiple selectors
-- **DFSDTToolSelector**: Decision tree-based selection
-- **GorillaAdapter**: Gorilla-style API-centric retrieval
+- **KeywordSelector**: Fast keyword-based matching
+- **EmbeddingSelector**: Semantic similarity using embeddings
+- **HybridSelector**: Weighted combination of multiple selectors
+- **DFSDTSelector**: Decision tree-based selection
+- **GorillaSelector**: Gorilla-style API-centric retrieval
 
 ### Base Classes
 
 - **BaseToolSelector**: Abstract base for all selectors
-- **ToolRegistry**: Central registry for selector implementations
+- **SelectorRegistry**: Central registry for selector implementations
 
 ### Schemas
 
-- **Tool**: Tool representation with metadata
-- **ToolSelection**: Selection result with scores
-- **SelectionContext**: Context for tool selection
+- **ToolSelectionQuery**: Query payload for selector input
+- **ToolPrediction**: Selection result with score and metadata
+- **SelectorConfig**: Base selector configuration schema
 
 ## 🏗️ Architecture
 
@@ -133,12 +138,11 @@ This package is part of the SAGE ecosystem and can be used with SAGE agents:
 
 ```python
 # Standalone usage
-from sage_libs.sage_agentic_tooluse import HybridToolSelector
+from sage_libs.sage_agentic_tooluse import HybridSelector
 
-# With SAGE (when available, through interface layer)
-from sage.libs.tooluse import create_selector
+from sage_libs.sage_agentic_tooluse import create_selector
 
-selector = create_selector("hybrid", tools=available_tools)
+selector = create_selector({"name": "hybrid", "top_k": 5}, resources)
 ```
 
 ## 📖 Documentation

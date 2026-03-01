@@ -4,9 +4,11 @@ Base classes and protocols for tool selection.
 Defines the ToolSelector protocol and abstract base class.
 """
 
+from __future__ import annotations
+
 import logging
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from .schemas import SelectorConfig, ToolPrediction, ToolSelectionQuery
 
@@ -23,6 +25,7 @@ class SelectorResources:
     Attributes:
         tools_loader: DataLoader for tool metadata
         embedding_client: Optional embedding service client (must conform to EmbeddingProtocol)
+        llm_client: Optional LLM client with chat(messages, **kwargs) interface
         logger: Logger instance
         cache: Optional cache instance
     """
@@ -30,9 +33,10 @@ class SelectorResources:
     def __init__(
         self,
         tools_loader: Any,
-        embedding_client: Optional["EmbeddingProtocol"] = None,
-        logger: Optional[logging.Logger] = None,
-        cache: Optional[Any] = None,
+        embedding_client: EmbeddingProtocol | None = None,
+        llm_client: Any | None = None,
+        logger: logging.Logger | None = None,
+        cache: Any | None = None,
     ):
         """
         Initialize resources.
@@ -40,11 +44,13 @@ class SelectorResources:
         Args:
             tools_loader: Tool metadata loader (from DataManager)
             embedding_client: Optional embedding service (must have embed(texts, model) interface)
+            llm_client: Optional LLM service (must have chat(messages, **kwargs) interface)
             logger: Optional logger instance
             cache: Optional cache instance
         """
         self.tools_loader = tools_loader
         self.embedding_client = embedding_client
+        self.llm_client = llm_client
         self.logger = logger or logging.getLogger(__name__)
         self.cache = cache
 
@@ -57,7 +63,7 @@ class ToolSelectorProtocol(Protocol):
     @classmethod
     def from_config(
         cls, config: SelectorConfig, resources: SelectorResources
-    ) -> "ToolSelectorProtocol":
+    ) -> ToolSelectorProtocol:
         """
         Create selector instance from config and resources.
 
@@ -71,7 +77,7 @@ class ToolSelectorProtocol(Protocol):
         ...
 
     def select(
-        self, query: ToolSelectionQuery, top_k: Optional[int] = None
+        self, query: ToolSelectionQuery, top_k: int | None = None
     ) -> list[ToolPrediction]:
         """
         Select top-k relevant tools for the given query.
@@ -114,7 +120,7 @@ class BaseToolSelector(ABC):
     @abstractmethod
     def from_config(
         cls, config: SelectorConfig, resources: SelectorResources
-    ) -> "BaseToolSelector":
+    ) -> BaseToolSelector:
         """
         Create selector from config.
 
@@ -142,7 +148,7 @@ class BaseToolSelector(ABC):
         pass
 
     def select(
-        self, query: ToolSelectionQuery, top_k: Optional[int] = None
+        self, query: ToolSelectionQuery, top_k: int | None = None
     ) -> list[ToolPrediction]:
         """
         Select top-k relevant tools.

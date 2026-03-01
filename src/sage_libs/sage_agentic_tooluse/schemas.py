@@ -4,7 +4,7 @@ Data schemas for tool selection.
 Defines Pydantic models for queries, predictions, and configurations.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -27,7 +27,7 @@ class ToolPrediction(BaseModel):
 
     tool_id: str = Field(..., description="Tool identifier")
     score: float = Field(..., ge=0.0, le=1.0, description="Relevance score (0-1)")
-    explanation: Optional[str] = Field(default=None, description="Optional explanation")
+    explanation: str | None = Field(default=None, description="Optional explanation")
     metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
     class Config:
@@ -111,7 +111,7 @@ class DFSDTSelectorConfig(SelectorConfig):
     max_depth: int = Field(default=3, ge=1, le=10, description="Maximum search depth")
     beam_width: int = Field(default=5, ge=1, le=20, description="Number of candidates per level")
     llm_model: str = Field(
-        default="auto", description="LLM model for scoring (auto uses UnifiedInferenceClient)"
+        default="default", description="LLM model identifier used by injected llm_client"
     )
     temperature: float = Field(default=0.1, ge=0.0, le=2.0, description="LLM sampling temperature")
     use_diversity_prompt: bool = Field(
@@ -147,7 +147,7 @@ class GorillaSelectorConfig(SelectorConfig):
     )
     embedding_model: str = Field(default="default", description="Embedding model for retrieval")
     llm_model: str = Field(
-        default="auto", description="LLM model for selection (auto uses UnifiedInferenceClient)"
+        default="default", description="LLM model identifier used by injected llm_client"
     )
     similarity_metric: str = Field(
         default="cosine", description="Similarity metric: cosine, dot, euclidean"

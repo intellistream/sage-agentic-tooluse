@@ -5,7 +5,6 @@ Combines keyword and embedding-based selection strategies using score fusion.
 """
 
 import logging
-from typing import Optional
 
 from .base import BaseToolSelector, SelectorResources
 from .embedding_selector import EmbeddingSelector
@@ -69,7 +68,7 @@ class HybridSelector(BaseToolSelector):
         self._keyword_selector = KeywordSelector(keyword_config, resources)
 
         # Initialize embedding selector if client available
-        self._embedding_selector: Optional[EmbeddingSelector] = None
+        self._embedding_selector: EmbeddingSelector | None = None
         self._embedding_available = False
 
         if resources.embedding_client:
@@ -92,14 +91,7 @@ class HybridSelector(BaseToolSelector):
     def from_config(cls, config: SelectorConfig, resources: SelectorResources) -> "HybridSelector":
         """Create hybrid selector from config."""
         if not isinstance(config, HybridSelectorConfig):
-            # Convert generic config to HybridSelectorConfig
-            config = HybridSelectorConfig(
-                name=config.name,
-                top_k=config.top_k,
-                min_score=config.min_score,
-                cache_enabled=config.cache_enabled,
-                params=config.params,
-            )
+            raise TypeError(f"Expected HybridSelectorConfig, got {type(config).__name__}")
         return cls(config, resources)
 
     def _select_impl(self, query: ToolSelectionQuery, top_k: int) -> list[ToolPrediction]:
