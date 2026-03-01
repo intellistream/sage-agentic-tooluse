@@ -41,20 +41,19 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+full = []
+
 dev = [
+    # dev includes [full] — no need for a separate extras install
+    "isage-agentic-tooluse[full]",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "ruff>=0.8.4",
     "mypy>=1.0.0",
 ]
 
-embedding = [
-    "sentence-transformers>=2.0.0",
-    "faiss-cpu>=1.7.0",
-]
-
 all = [
-    "isage-agentic-tooluse[dev,embedding]",
+    "isage-agentic-tooluse[dev]",
 ]
 
 [project.urls]
