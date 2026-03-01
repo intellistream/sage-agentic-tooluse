@@ -36,9 +36,9 @@ classifiers = [
 dependencies = ["numpy>=1.26.0,<2.3.0", "typing-extensions>=4.0.0"]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0.0", "pytest-cov>=4.0.0", "ruff>=0.8.4", "mypy>=1.0.0"]
+full = []
 
-all = ["isage-agentic-tooluse[dev]"]
+dev = ["isage-agentic-tooluse[full]", "pytest>=7.0.0", "pytest-cov>=4.0.0", "ruff>=0.8.4", "mypy>=1.0.0"]
 
 [project.urls]
 Homepage = "https://github.com/intellistream/sage-agentic-tooluse"
