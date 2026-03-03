@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 from .schemas import SelectorConfig, ToolPrediction, ToolSelectionQuery
 
 if TYPE_CHECKING:
-    from sage.common.components.sage_embedding.protocols import EmbeddingProtocol
+    from sagellm.embedding import EmbeddingProtocol
 
 logger = logging.getLogger(__name__)
 
