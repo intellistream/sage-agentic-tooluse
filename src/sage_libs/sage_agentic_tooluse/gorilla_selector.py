@@ -13,7 +13,7 @@ Reference:
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import Field
 
@@ -35,7 +35,7 @@ class GorillaSelectorConfig(SelectorConfig):
     )
     embedding_model: str = Field(default="default", description="Embedding model for retrieval")
     llm_model: str = Field(
-        default="auto", description="LLM model for selection (auto uses IntelligentLLMClient)"
+        default="default", description="LLM model identifier used by injected llm_client"
     )
     similarity_metric: str = Field(
         default="cosine", description="Similarity metric: cosine, dot, euclidean"
@@ -63,10 +63,6 @@ class RetrievedToolDoc:
     category: str = ""
 
 
-# Sentinel value to indicate auto-creation of LLM client
-_AUTO_LLM = object()
-
-
 class GorillaSelector(BaseToolSelector):
     """
     Gorilla-style retrieval-augmented tool selector.
@@ -90,7 +86,7 @@ class GorillaSelector(BaseToolSelector):
         self,
         config: GorillaSelectorConfig,
         resources: SelectorResources,
-        llm_client: Any = _AUTO_LLM,
+        llm_client: Any | None = None,
     ):
         """
         Initialize Gorilla selector.
@@ -98,8 +94,9 @@ class GorillaSelector(BaseToolSelector):
         Args:
             config: Selector configuration
             resources: Shared resources including embedding_client
-            llm_client: LLM client for selection. Pass None to disable LLM and use
-                retrieval-only mode. Omit or pass _AUTO_LLM for auto-creation.
+            llm_client: Optional LLM client for selection stage. If not provided,
+                uses resources.llm_client. If still unavailable, selector runs in
+                retrieval-only mode.
 
         Raises:
             ValueError: If embedding_client is not provided
@@ -116,46 +113,20 @@ class GorillaSelector(BaseToolSelector):
 
         self.embedding_client = resources.embedding_client
 
-        # Initialize LLM client:
-        # - llm_client=None: explicitly disable LLM, use retrieval-only mode
-        # - llm_client=_AUTO_LLM (default): auto-create LLM client
-        # - llm_client=<client>: use provided client
-        if llm_client is None:
-            self.llm_client = None
-        elif llm_client is _AUTO_LLM:
-            self.llm_client = self._create_llm_client()
-        else:
-            self.llm_client = llm_client
+        # Initialize LLM client from explicit parameter or injected resources
+        self.llm_client = llm_client if llm_client is not None else resources.llm_client
 
         # Build tool index and cache tool metadata
         self._tool_docs: dict[str, RetrievedToolDoc] = {}
-        self._tool_embeddings: Optional[Any] = None
+        self._tool_embeddings: Any | None = None
         self._tool_ids: list[str] = []
         self._preprocess_tools()
-
-    def _create_llm_client(self) -> Any:
-        """Create LLM client for selection stage."""
-        try:
-            from sage.llm import UnifiedInferenceClient
-
-            # Always use create() for automatic local-first detection
-            return UnifiedInferenceClient.create()
-        except ImportError:
-            logger.warning(
-                "UnifiedInferenceClient not available. GorillaSelector will use "
-                "embedding-only mode (no LLM reranking)."
-            )
-            return None
-        except Exception as e:
-            logger.warning(f"Failed to create LLM client: {e}. Using retrieval-only mode.")
-            return None
 
     @classmethod
     def from_config(cls, config: SelectorConfig, resources: SelectorResources) -> "GorillaSelector":
         """Create Gorilla selector from config."""
         if not isinstance(config, GorillaSelectorConfig):
-            # Convert generic config to GorillaSelectorConfig
-            config = GorillaSelectorConfig(**config.model_dump())
+            raise TypeError(f"Expected GorillaSelectorConfig, got {type(config).__name__}")
         return cls(config, resources)
 
     def _preprocess_tools(self) -> None:
@@ -232,14 +203,14 @@ class GorillaSelector(BaseToolSelector):
         return " ".join(parts)
 
     def _retrieve_candidates(
-        self, query: str, candidate_ids: Optional[set[str]], top_k: int
+        self, query: str, candidate_ids: set[str] | None, top_k: int
     ) -> list[RetrievedToolDoc]:
         """
         Retrieve candidate tools using embedding similarity.
 
         Args:
             query: User instruction
-            candidate_ids: Optional set of valid candidate tool IDs
+            candidate_ids: Optional set of valid tool IDs
             top_k: Number of candidates to retrieve
 
         Returns:

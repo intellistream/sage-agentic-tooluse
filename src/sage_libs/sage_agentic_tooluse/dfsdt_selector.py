@@ -11,9 +11,10 @@ The DFSDT algorithm treats tool selection as a tree search problem where:
 4. Diversity prompting encourages exploration of different tool combinations
 """
 
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass, field
-from typing import Optional
 
 from .base import BaseToolSelector, SelectorResources
 from .keyword_selector import KeywordSelector
@@ -71,8 +72,8 @@ class SearchNode:
     tool_description: str
     score: float = 0.0
     depth: int = 0
-    parent: Optional["SearchNode"] = None
-    children: list["SearchNode"] = field(default_factory=list)
+    parent: SearchNode | None = None
+    children: list[SearchNode] = field(default_factory=list)
     visited: bool = False
     pruned: bool = False
 
@@ -114,12 +115,12 @@ class DFSDTSelector(BaseToolSelector):
         super().__init__(config, resources)
         self.config: DFSDTSelectorConfig = config
 
-        # LLM client for scoring
-        self._llm_client = None
-        self._llm_initialized = False
+        # LLM client for scoring (injected from resources)
+        self._llm_client = resources.llm_client
+        self._llm_initialized = self._llm_client is not None
 
         # Keyword selector for pre-filtering
-        self._keyword_selector: Optional[KeywordSelector] = None
+        self._keyword_selector: KeywordSelector | None = None
         if config.use_keyword_prefilter:
             keyword_config = KeywordSelectorConfig(
                 name="keyword_prefilter",
@@ -133,16 +134,10 @@ class DFSDTSelector(BaseToolSelector):
         self._preload_tools()
 
     @classmethod
-    def from_config(cls, config: SelectorConfig, resources: SelectorResources) -> "DFSDTSelector":
+    def from_config(cls, config: SelectorConfig, resources: SelectorResources) -> DFSDTSelector:
         """Create DFSDT selector from config."""
         if not isinstance(config, DFSDTSelectorConfig):
-            config = DFSDTSelectorConfig(
-                name=config.name,
-                top_k=config.top_k,
-                min_score=config.min_score,
-                cache_enabled=config.cache_enabled,
-                params=config.params,
-            )
+            raise TypeError(f"Expected DFSDTSelectorConfig, got {type(config).__name__}")
         return cls(config, resources)
 
     def _preload_tools(self) -> None:
@@ -159,22 +154,6 @@ class DFSDTSelector(BaseToolSelector):
             self.logger.info(f"DFSDT: Preloaded {len(self._tool_cache)} tools")
         except Exception as e:
             self.logger.error(f"Error preloading tools: {e}")
-
-    def _get_llm_client(self):
-        """Lazy initialization of LLM client."""
-        if not self._llm_initialized:
-            try:
-                from sage.llm import UnifiedInferenceClient
-
-                self._llm_client = UnifiedInferenceClient.create()
-                self._llm_initialized = True
-                self.logger.info("DFSDT: LLM client initialized")
-            except Exception as e:
-                self.logger.warning(f"Could not initialize LLM client: {e}")
-                self._llm_client = None
-                self._llm_initialized = True
-
-        return self._llm_client
 
     def _select_impl(self, query: ToolSelectionQuery, top_k: int) -> list[ToolPrediction]:
         """
@@ -290,7 +269,7 @@ class DFSDTSelector(BaseToolSelector):
         Returns:
             Relevance score (0-1)
         """
-        llm_client = self._get_llm_client()
+        llm_client = self._llm_client
 
         if llm_client is None:
             # Fallback to simple keyword-based scoring

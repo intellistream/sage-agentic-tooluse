@@ -5,10 +5,10 @@ Provides registration, lookup, and factory creation of selectors.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from .base import BaseToolSelector, SelectorResources
-from .schemas import SelectorConfig, create_selector_config
+from .schemas import CONFIG_TYPES, SelectorConfig, create_selector_config
 
 logger = logging.getLogger(__name__)
 
@@ -20,20 +20,10 @@ class SelectorRegistry:
     Supports registration, lookup, and factory creation of selectors.
     """
 
-    _instance: Optional["SelectorRegistry"] = None
-    _selectors: dict[str, type[BaseToolSelector]] = {}
-
     def __init__(self):
         """Initialize registry."""
         self._selectors = {}
         self._instances: dict[str, BaseToolSelector] = {}
-
-    @classmethod
-    def get_instance(cls) -> "SelectorRegistry":
-        """Get singleton registry instance."""
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
 
     def register(self, name: str, selector_class: type[BaseToolSelector]) -> None:
         """
@@ -49,7 +39,7 @@ class SelectorRegistry:
         self._selectors[name] = selector_class
         logger.info(f"Registered selector: {name}")
 
-    def get_class(self, name: str) -> Optional[type[BaseToolSelector]]:
+    def get_class(self, name: str) -> type[BaseToolSelector] | None:
         """
         Get selector class by name.
 
@@ -61,11 +51,11 @@ class SelectorRegistry:
         """
         return self._selectors.get(name)
 
-    def get(
+    def create(
         self,
         name: str,
-        config: Optional[SelectorConfig] = None,
-        resources: Optional[SelectorResources] = None,
+        resources: SelectorResources,
+        config: SelectorConfig | None = None,
         cache: bool = True,
     ) -> BaseToolSelector:
         """
@@ -73,15 +63,15 @@ class SelectorRegistry:
 
         Args:
             name: Selector strategy name
+            resources: Shared resources
             config: Optional selector configuration
-            resources: Optional resources (required for new instances)
             cache: Whether to cache and reuse instances
 
         Returns:
             Selector instance
 
         Raises:
-            ValueError: If selector not registered or resources missing
+            ValueError: If selector not registered
         """
         # Check cache
         if cache and name in self._instances:
@@ -95,10 +85,6 @@ class SelectorRegistry:
         # Create config if needed
         if config is None:
             config = create_selector_config({"name": name})
-
-        # Validate resources
-        if resources is None:
-            raise ValueError(f"Resources required to create selector: {name}")
 
         # Create instance
         instance = selector_class.from_config(config, resources)
@@ -122,8 +108,18 @@ class SelectorRegistry:
         Returns:
             Initialized selector instance
         """
-        config = create_selector_config(config_dict)
-        return self.get(config.name, config, resources, cache=False)
+        selector_name = config_dict.get("name", "keyword")
+
+        if selector_name in CONFIG_TYPES:
+            config = create_selector_config(config_dict)
+            return self.create(config.name, resources, config, cache=False)
+
+        selector_class = self.get_class(selector_name)
+        if selector_class is None:
+            raise ValueError(f"Unknown selector type: {selector_name}")
+
+        config = SelectorConfig(**config_dict)
+        return self.create(selector_name, resources, config, cache=False)
 
     def list_selectors(self) -> list:
         """List all registered selector names."""
@@ -136,7 +132,7 @@ class SelectorRegistry:
 
 
 # Global registry instance
-_registry = SelectorRegistry.get_instance()
+_registry = SelectorRegistry()
 
 
 def register_selector(name: str, selector_class: type[BaseToolSelector]) -> None:
@@ -150,26 +146,7 @@ def register_selector(name: str, selector_class: type[BaseToolSelector]) -> None
     _registry.register(name, selector_class)
 
 
-def get_selector(
-    name: str,
-    config: Optional[SelectorConfig] = None,
-    resources: Optional[SelectorResources] = None,
-) -> BaseToolSelector:
-    """
-    Get selector instance from global registry.
-
-    Args:
-        name: Selector strategy name
-        config: Optional selector configuration
-        resources: Optional resources
-
-    Returns:
-        Selector instance
-    """
-    return _registry.get(name, config, resources)
-
-
-def create_selector_from_config(
+def create_selector(
     config_dict: dict[str, Any], resources: SelectorResources
 ) -> BaseToolSelector:
     """

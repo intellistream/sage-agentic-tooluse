@@ -16,8 +16,7 @@ from .hybrid_selector import HybridSelector, HybridSelectorConfig
 from .keyword_selector import KeywordSelector
 from .registry import (
     SelectorRegistry,
-    create_selector_from_config,
-    get_selector,
+    create_selector,
     register_selector,
 )
 from .schemas import (
@@ -31,9 +30,6 @@ from .schemas import (
     ToolSelectionQuery,
     TwoStageSelectorConfig,
     create_selector_config,
-)
-from .schemas import (
-    GorillaSelectorConfig as GorillaSelectorConfigSchema,
 )
 
 # Auto-register built-in selectors
@@ -60,8 +56,7 @@ __all__ = [
     # Registry
     "SelectorRegistry",
     "register_selector",
-    "get_selector",
-    "create_selector_from_config",
+    "create_selector",
     # Schemas
     "SelectorConfig",
     "KeywordSelectorConfig",
